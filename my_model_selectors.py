@@ -77,7 +77,23 @@ class SelectorBIC(ModelSelector):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
 
         # TODO implement model selection based on BIC scores
-        raise NotImplementedError
+        all_score = []
+        for num_comp in range(self.min_n_components, self.max_n_components + 1):
+            try:
+                hmm_model = GaussianHMM(n_components=num_comp, covariance_type="diag", n_iter=1000,
+                                        random_state=self.random_state, verbose=False).fit(self.X, self.lengths)
+                logL = hmm_model.score(self.X, self.lengths)
+                num_params = (num_comp - 1) + (2 * num_comp * len(self.sequences[0]))
+                BIC = -2 * logL + np.log(len(self.X)) * num_params
+                all_score.append((BIC, num_comp))
+            except:
+                print("failure on {} with {} states".format(self.this_word, num_comp))
+                all_score.append((+100000, num_comp))
+            
+        best_num = sorted(all_score)[0][1]
+        hmm_model = GaussianHMM(n_components=best_num, covariance_type="diag", n_iter=1000,
+                                            random_state=self.random_state, verbose=False).fit(self.X, self.lengths)
+        return hmm_model
 
 
 class SelectorDIC(ModelSelector):
@@ -93,7 +109,28 @@ class SelectorDIC(ModelSelector):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
 
         # TODO implement model selection based on DIC scores
-        raise NotImplementedError
+        all_score = []
+        for num_comp in range(self.min_n_components, self.max_n_components + 1):
+            try:
+                hmm_model = GaussianHMM(n_components=num_comp, covariance_type="diag", n_iter=1000,
+                                        random_state=self.random_state, verbose=False).fit(self.X, self.lengths)
+                logL = hmm_model.score(self.X, self.lengths)
+                logL_others = []
+                for word in self.words:
+                    if word != self.this_word:
+                        X, lengths = self.hwords[word]
+                        logL_others.append( hmm_model.score(X, lengths) )
+            
+                DIC = logL - np.mean(logL_others)
+                all_score.append((DIC, num_comp))
+            except:
+                print("failure on {} with {} states".format(self.this_word, num_comp))
+                #all_score.append((+100000, num_comp))
+            
+        best_num = sorted(all_score, reverse=True)[0][1]
+        hmm_model = GaussianHMM(n_components=best_num, covariance_type="diag", n_iter=1000,
+                                            random_state=self.random_state, verbose=False).fit(self.X, self.lengths)
+        return hmm_model
 
 
 class SelectorCV(ModelSelector):
