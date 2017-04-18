@@ -43,7 +43,8 @@ class ModelSelector(object):
             return hmm_model
         except:
             if self.verbose:
-                print("failure on {} with {} states".format(self.this_word, num_states))
+                pass
+                #print("failure on {} with {} states".format(self.this_word, num_states))
             return None
 
 
@@ -87,10 +88,11 @@ class SelectorBIC(ModelSelector):
                 BIC = -2 * logL + np.log(len(self.X)) * num_params
                 all_score.append((BIC, num_comp))
             except:
-                print("failure on {} with {} states".format(self.this_word, num_comp))
-                all_score.append((+100000, num_comp))
+                pass
             
-        best_num = sorted(all_score)[0][1]
+        best_num = 3 #default value
+        if all_score:
+            best_num = sorted(all_score)[0][1]
         hmm_model = GaussianHMM(n_components=best_num, covariance_type="diag", n_iter=1000,
                                             random_state=self.random_state, verbose=False).fit(self.X, self.lengths)
         return hmm_model
@@ -124,10 +126,10 @@ class SelectorDIC(ModelSelector):
                 DIC = logL - np.mean(logL_others)
                 all_score.append((DIC, num_comp))
             except:
-                print("failure on {} with {} states".format(self.this_word, num_comp))
-                #all_score.append((+100000, num_comp))
-            
-        best_num = sorted(all_score, reverse=True)[0][1]
+                pass
+        best_num = 3 #default value
+        if all_score:
+            best_num = sorted(all_score, reverse=True)[0][1]
         hmm_model = GaussianHMM(n_components=best_num, covariance_type="diag", n_iter=1000,
                                             random_state=self.random_state, verbose=False).fit(self.X, self.lengths)
         return hmm_model
@@ -146,6 +148,8 @@ class SelectorCV(ModelSelector):
         for num_comp in range(self.min_n_components, self.max_n_components + 1):
             
             split = min(len(self.lengths), 3)
+            if split == 1:
+                break
             split_method = KFold(n_splits = split)
             cv_score = []
             for cv_train_idx, cv_test_idx in split_method.split(self.sequences):
@@ -157,10 +161,12 @@ class SelectorCV(ModelSelector):
                     logL = hmm_model.score(X_test, length_test)
                     cv_score.append(logL)
                 except:
-                    print("failure on {} with {} states".format(self.this_word, num_comp))
                     cv_score.append(-100000)
             all_score.append((np.mean(cv_score),num_comp))
-        best_num = sorted(all_score, reverse=True)[0][1]
+        
+        best_num = 3 #default value
+        if all_score:
+            best_num = sorted(all_score, reverse=True)[0][1]
         hmm_model = GaussianHMM(n_components=best_num, covariance_type="diag", n_iter=1000,
                                             random_state=self.random_state, verbose=False).fit(self.X, self.lengths)
         return hmm_model
