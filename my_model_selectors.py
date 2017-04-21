@@ -84,8 +84,9 @@ class SelectorBIC(ModelSelector):
                 hmm_model = GaussianHMM(n_components=num_comp, covariance_type="diag", n_iter=1000,
                                         random_state=self.random_state, verbose=False).fit(self.X, self.lengths)
                 logL = hmm_model.score(self.X, self.lengths)
-                num_params = (num_comp - 1) + (2 * num_comp * len(self.sequences[0]))
-                BIC = -2 * logL + np.log(len(self.X)) * num_params
+                N, f = self.X.shape
+                p = num_comp ** 2 + 2 * num_comp * f - 1
+                BIC = -2 * logL + np.log(len(self.X)) * p
                 all_score.append((BIC, num_comp))
             except:
                 pass
